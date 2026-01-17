@@ -1,18 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SyncService {
-  // --- CANLI SUNUCU AYARI ---
-  // Render.com deploy sonrası burayı güncelleyeceğiz.
-  // Örn: https://spam-blocker-backend.onrender.com/api/v1/rules/sync
-  // Şimdilik test için localhost kalabilir veya .env ile yönetilebilir.
-  // Ancak build alırken burayı değiştirmeyi UNUTMA!
-  static const String API_URL =
-      'https://spam-blocker-backend.onrender.com/api/v1/rules/sync';
-
   static const String RULES_FILENAME = 'spam_rules.json';
   static const String USER_KEYWORDS_KEY = 'user_custom_keywords';
 
@@ -24,24 +16,32 @@ class SyncService {
 
       Map<String, dynamic> finalRules = {'phones': [], 'keywords': []};
 
-      // 1. Sunucudan veriyi çek (SADECE PREMIUM KULLANICILAR İÇİN)
+      // 1. Supabase'den veriyi çek (SADECE PREMIUM KULLANICILAR İÇİN)
       if (isPremium) {
         try {
-          final response = await http.get(Uri.parse(API_URL));
-          if (response.statusCode == 200) {
-            final apiData = jsonDecode(response.body);
-            finalRules['phones'].addAll(
-              List<String>.from(apiData['phones'] ?? []),
-            );
-            finalRules['keywords'].addAll(
-              List<String>.from(apiData['keywords'] ?? []),
-            );
-            print('Premium kullanıcı: Admin kuralları eklendi.');
-          } else {
-            print('API Hatası: ${response.statusCode}');
+          final supabase = Supabase.instance.client;
+
+          // Aktif kuralları çek
+          final response = await supabase
+              .from('spam_rules')
+              .select('type, value')
+              .eq('is_active', true);
+
+          final List<dynamic> data = response as List<dynamic>;
+
+          for (var item in data) {
+            if (item['type'] == 'PHONE') {
+              finalRules['phones'].add(item['value']);
+            } else if (item['type'] == 'KEYWORD') {
+              finalRules['keywords'].add(item['value']);
+            }
           }
+
+          print(
+            'Premium kullanıcı: Supabase\'den ${data.length} kural çekildi.',
+          );
         } catch (e) {
-          print('API Hatası (Offline modda devam ediliyor): $e');
+          print('Supabase Hatası (Offline modda devam ediliyor): $e');
         }
       } else {
         print('Free kullanıcı: Admin kuralları dahil edilmedi.');

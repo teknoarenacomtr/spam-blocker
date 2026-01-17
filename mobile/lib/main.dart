@@ -8,12 +8,21 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'sync_service.dart';
 import 'background_service.dart';
 import 'subscription_screen.dart';
 
+// --- SUPABASE AYARLARI ---
+const SUPABASE_URL = 'https://wxpkbziqobdcgluyiwar.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_4TVY6GAVzk-kOXJkOJfRKg_HqV1_ggq';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Supabase Başlatma
+  await Supabase.initialize(url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY);
+
   await BackgroundService.initialize();
   runApp(const MyApp());
 }
