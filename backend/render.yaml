@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: spam-blocker-backend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: spam-db
+          property: connectionString
+
+databases:
+  - name: spam-db
+    plan: free
+    databaseName: spam_db
+    user: spam_user
