@@ -15,9 +15,14 @@ const SUPABASE_ANON_KEY = 'sb_publishable_4TVY6GAVzk-kOXJkOJfRKg_HqV1_ggq';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+interface RuleItem {
+  value: string;
+  description?: string;
+}
+
 interface Rules {
-  phones: string[];
-  keywords: string[];
+  phones: RuleItem[];
+  keywords: RuleItem[];
 }
 
 interface UserReport {
@@ -210,8 +215,8 @@ function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 className={`max-w-md mx-auto p-6 rounded-2xl border mb-12 ${searchResult === 'SPAM'
-                    ? 'bg-red-50 border-red-200 text-red-800'
-                    : 'bg-green-50 border-green-200 text-green-800'
+                  ? 'bg-red-50 border-red-200 text-red-800'
+                  : 'bg-green-50 border-green-200 text-green-800'
                   }`}
               >
                 <div className="flex items-center justify-center gap-3 mb-2">
@@ -275,8 +280,8 @@ function LandingPage() {
                       type="button"
                       onClick={() => setReportCategory(cat.id)}
                       className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 ${reportCategory === cat.id
-                          ? `${cat.color} ring-2 ring-offset-2 ring-red-100 scale-105 shadow-md`
-                          : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50 hover:border-gray-200'
+                        ? `${cat.color} ring-2 ring-offset-2 ring-red-100 scale-105 shadow-md`
+                        : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50 hover:border-gray-200'
                         }`}
                     >
                       <cat.icon className="w-5 h-5" />
@@ -489,13 +494,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const { data, error } = await supabase
         .from('spam_rules')
-        .select('type, value')
+        .select('type, value, description')
         .eq('is_active', true);
 
       if (error) throw error;
 
-      const phones = data.filter((item: any) => item.type === 'PHONE').map((item: any) => item.value);
-      const keywords = data.filter((item: any) => item.type === 'KEYWORD').map((item: any) => item.value);
+      const phones = data.filter((item: any) => item.type === 'PHONE').map((item: any) => ({ value: item.value, description: item.description }));
+      const keywords = data.filter((item: any) => item.type === 'KEYWORD').map((item: any) => ({ value: item.value, description: item.description }));
 
       setRules({ phones, keywords });
       setMessage('Veriler güncellendi.');
@@ -568,7 +573,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     // 1. spam_rules'a ekle
     const { error: insertError } = await supabase
       .from('spam_rules')
-      .insert([{ type: 'PHONE', value: report.phone_number, category: report.category, is_active: true }]);
+      .insert([{
+        type: 'PHONE',
+        value: report.phone_number,
+        category: report.category,
+        description: report.comment,
+        is_active: true
+      }]);
 
     if (insertError) {
       console.error(insertError);
@@ -703,9 +714,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 <ul className="divide-y divide-gray-50 max-h-[300px] overflow-y-auto custom-scrollbar">
                   {rules.phones.map((phone, i) => (
                     <li key={i} className="px-6 py-3.5 flex justify-between items-center hover:bg-red-50/30 transition group">
-                      <span className="font-mono text-gray-700 font-medium">{phone}</span>
+                      <div>
+                        <div className="font-mono text-gray-700 font-medium">{phone.value}</div>
+                        {phone.description && <div className="text-xs text-gray-400 italic">{phone.description}</div>}
+                      </div>
                       <button
-                        onClick={() => handleDelete(phone, 'PHONE')}
+                        onClick={() => handleDelete(phone.value, 'PHONE')}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition opacity-0 group-hover:opacity-100"
                         title="Sil"
                       >
@@ -735,9 +749,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 <ul className="divide-y divide-gray-50 max-h-[300px] overflow-y-auto custom-scrollbar">
                   {rules.keywords.map((kw, i) => (
                     <li key={i} className="px-6 py-3.5 flex justify-between items-center hover:bg-orange-50/30 transition group">
-                      <span className="font-medium text-gray-700">{kw}</span>
+                      <div>
+                        <div className="font-medium text-gray-700">{kw.value}</div>
+                        {kw.description && <div className="text-xs text-gray-400 italic">{kw.description}</div>}
+                      </div>
                       <button
-                        onClick={() => handleDelete(kw, 'KEYWORD')}
+                        onClick={() => handleDelete(kw.value, 'KEYWORD')}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition opacity-0 group-hover:opacity-100"
                         title="Sil"
                       >
