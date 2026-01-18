@@ -251,7 +251,7 @@ function LandingPage() {
           comment: reportComment,
           caller_name: callerName,
           call_date: callDate,
-          call_time: callTime,
+          call_time: callTime || null, // Boşsa null gönder
           reporter_name: 'Misafir Kullanıcı',
           created_at: new Date().toISOString(),
           status: 'PENDING'
@@ -915,7 +915,11 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       : 'Rapor onaylandı ve spam listesine eklendi.');
 
     fetchRules();
-    fetchIncomingReports(); // Listeden düşmesi için
+    // Listeyi manuel olarak güncelle (Sunucudan gelmesini beklemeden arayüzü temizle)
+    setIncomingReports(prev => prev.filter(r => r.phone_number !== report.phone_number));
+
+    // Arkadan da güncelle
+    fetchIncomingReports();
   };
 
   const handleDeleteAllReportsForNumber = async (phone: string) => {
