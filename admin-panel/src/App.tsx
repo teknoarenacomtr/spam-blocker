@@ -47,7 +47,8 @@ function LandingPage() {
 
   // Sorgulama & Akış State'leri
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResult, setSearchResult] = useState<any>(null); // null, 'CLEAN', 'SPAM'
+  const [searchResult, setSearchResult] = useState<any>(null); // null, 'CLEAN', 'SPAM', 'SUSPICIOUS'
+  const [reportCount, setReportCount] = useState(0);
   const [recentReports, setRecentReports] = useState<UserReport[]>([]);
 
   useEffect(() => {
@@ -105,16 +106,31 @@ function LandingPage() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Basit bir simülasyon: Gerçekte spam_rules tablosuna bakılmalı
-    const { data } = await supabase
+    setSearchResult(null);
+    setReportCount(0);
+
+    // 1. Önce Kesinleşmiş Spam Kurallarına Bak
+    const { data: spamData } = await supabase
       .from('spam_rules')
       .select('*')
       .eq('type', 'PHONE')
       .eq('value', searchQuery)
       .maybeSingle();
 
-    if (data) {
+    if (spamData) {
       setSearchResult('SPAM');
+      return;
+    }
+
+    // 2. Eğer Spam Listesinde Yoksa, Şikayetlere Bak (Henüz onaylanmamış ama raporlanmış mı?)
+    const { count } = await supabase
+      .from('user_reports')
+      .select('*', { count: 'exact', head: true })
+      .eq('phone_number', searchQuery);
+
+    if (count && count > 0) {
+      setReportCount(count);
+      setSearchResult('SUSPICIOUS');
     } else {
       setSearchResult('CLEAN');
     }
@@ -215,20 +231,28 @@ function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 className={`max-w-md mx-auto p-6 rounded-2xl border mb-12 ${searchResult === 'SPAM'
-                  ? 'bg-red-50 border-red-200 text-red-800'
-                  : 'bg-green-50 border-green-200 text-green-800'
+                    ? 'bg-red-50 border-red-200 text-red-800'
+                    : searchResult === 'SUSPICIOUS'
+                      ? 'bg-orange-50 border-orange-200 text-orange-800'
+                      : 'bg-green-50 border-green-200 text-green-800'
                   }`}
               >
                 <div className="flex items-center justify-center gap-3 mb-2">
-                  {searchResult === 'SPAM' ? <AlertOctagon className="w-8 h-8" /> : <CheckCircle className="w-8 h-8" />}
+                  {searchResult === 'SPAM' && <AlertOctagon className="w-8 h-8" />}
+                  {searchResult === 'SUSPICIOUS' && <AlertTriangle className="w-8 h-8" />}
+                  {searchResult === 'CLEAN' && <CheckCircle className="w-8 h-8" />}
+
                   <h3 className="text-2xl font-bold">
-                    {searchResult === 'SPAM' ? 'Tehlikeli Numara!' : 'Temiz Görünüyor'}
+                    {searchResult === 'SPAM' ? 'Tehlikeli Numara!' :
+                      searchResult === 'SUSPICIOUS' ? 'Şüpheli Numara' : 'Temiz Görünüyor'}
                   </h3>
                 </div>
                 <p>
                   {searchResult === 'SPAM'
                     ? 'Bu numara sistemimizde SPAM olarak işaretlenmiş.'
-                    : 'Veritabanımızda bu numarayla ilgili henüz bir kayıt yok.'}
+                    : searchResult === 'SUSPICIOUS'
+                      ? `Bu numara hakkında ${reportCount} adet şikayet var ancak henüz admin tarafından onaylanmamış. Dikkatli olun.`
+                      : 'Veritabanımızda bu numarayla ilgili henüz bir kayıt yok.'}
                 </p>
               </motion.div>
             )}
