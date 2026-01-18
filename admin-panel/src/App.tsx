@@ -605,17 +605,28 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         is_active: true
       }]);
 
-    if (insertError) {
+    // Hata var mı? Varsa ve "Unique Violation" (zaten ekli) değilse dur.
+    // Kod 23505: unique_violation
+    if (insertError && insertError.code !== '23505') {
       console.error(insertError);
-      setMessage('Ekleme başarısız (Zaten ekli olabilir)');
+      setMessage('Bir hata oluştu!');
       return;
     }
 
-    // 2. user_reports'tan sil (veya işlendi olarak işaretle)
-    await handleDeleteReport(report.id);
+    // 2. user_reports'tan BU NUMARAYA AİT TÜM kayıtları sil
+    // Böylece aynı numara için gelen 10 tane şikayeti tek tek silmek zorunda kalmazsın.
+    await handleDeleteAllReportsForNumber(report.phone_number);
 
-    setMessage('Rapor onaylandı ve spam listesine eklendi.');
+    setMessage(insertError?.code === '23505'
+      ? 'Numara zaten listedeydi. Şikayetler temizlendi.'
+      : 'Rapor onaylandı ve spam listesine eklendi.');
+
     fetchRules();
+  };
+
+  const handleDeleteAllReportsForNumber = async (phone: string) => {
+    await supabase.from('user_reports').delete().eq('phone_number', phone);
+    fetchIncomingReports();
   };
 
   const handleDeleteReport = async (id: number) => {
