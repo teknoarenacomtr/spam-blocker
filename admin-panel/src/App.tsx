@@ -231,10 +231,10 @@ function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 className={`max-w-md mx-auto p-6 rounded-2xl border mb-12 ${searchResult === 'SPAM'
-                    ? 'bg-red-50 border-red-200 text-red-800'
-                    : searchResult === 'SUSPICIOUS'
-                      ? 'bg-orange-50 border-orange-200 text-orange-800'
-                      : 'bg-green-50 border-green-200 text-green-800'
+                  ? 'bg-red-50 border-red-200 text-red-800'
+                  : searchResult === 'SUSPICIOUS'
+                    ? 'bg-orange-50 border-orange-200 text-orange-800'
+                    : 'bg-green-50 border-green-200 text-green-800'
                   }`}
               >
                 <div className="flex items-center justify-center gap-3 mb-2">
@@ -373,7 +373,7 @@ function LandingPage() {
                 </div>
 
                 <div className="bg-gray-50 p-3 rounded-lg font-mono text-lg font-bold text-gray-800 mb-3 tracking-wide">
-                  {report.phone_number.substring(0, report.phone_number.length - 4)}****
+                  {report.phone_number}
                 </div>
 
                 {report.comment && (
