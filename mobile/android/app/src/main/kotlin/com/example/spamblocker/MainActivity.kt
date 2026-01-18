@@ -16,14 +16,34 @@ class MainActivity: FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "checkPermissions") {
-                val isDefault = Telephony.Sms.getDefaultSmsPackage(context) == context.packageName
-                result.success(isDefault)
+                val isSmsDefault = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
+                    roleManager.isRoleHeld(RoleManager.ROLE_SMS)
+                } else {
+                    Telephony.Sms.getDefaultSmsPackage(context) == context.packageName
+                }
+                
+                // Call Screening is optional for "Basic Protection" but good to check
+                val isCallScreening = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
+                    roleManager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)
+                } else {
+                    true // Pre-Q doesn't have this role in the same way
+                }
+
+                // Return true if SMS default is set (Primary requirement)
+                result.success(isSmsDefault)
             } else if (call.method == "requestDefaultApp") {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val roleManager = getSystemService(Context.ROLE_SERVICE) as RoleManager
                     if (roleManager.isRoleAvailable(RoleManager.ROLE_SMS)) {
                         val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
                         startActivityForResult(intent, 123)
+                    } else {
+                        // Fallback for some devices
+                        val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
+                        intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, context.packageName)
+                        startActivity(intent)
                     }
                 } else {
                     val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)

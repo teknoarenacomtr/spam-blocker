@@ -84,6 +84,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _checkPermissions(); // <--- EKLENDİ: Uygulama öne gelince izni tekrar kontrol et
       _autoSync();
       _loadBlockedHistory();
     }
