@@ -923,12 +923,24 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   };
 
   const handleDeleteAllReportsForNumber = async (phone: string) => {
-    await supabase.from('user_reports').delete().eq('phone_number', phone);
+    // Bu fonksiyonu artık KULLANMIYORUZ, ama kod içinde kalmış olabilir diye 
+    // içeriğini "REJECTED" (Reddedildi) yapacak şekilde değiştiriyorum.
+    // Böylece yanlışlıkla çağrılsa bile silmez, reddedildi olarak işaretler.
+    await supabase
+      .from('user_reports')
+      .update({ status: 'REJECTED' })
+      .eq('phone_number', phone);
+
     fetchIncomingReports();
   };
 
   const handleDeleteReport = async (id: number) => {
-    await supabase.from('user_reports').delete().eq('id', id);
+    // Sil butonu da artık silmesin, "REJECTED" (Reddedildi/Gizlendi) yapsın
+    await supabase
+      .from('user_reports')
+      .update({ status: 'REJECTED' })
+      .eq('id', id);
+
     fetchIncomingReports();
   };
 
