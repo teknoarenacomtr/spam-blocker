@@ -439,6 +439,34 @@ function LandingPage() {
             </div>
 
             <div className="p-8">
+              {reportStatus === 'success' && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-3"
+                >
+                  <CheckCircle className="w-6 h-6 shrink-0" />
+                  <div>
+                    <h4 className="font-bold">Raporunuz Alındı!</h4>
+                    <p className="text-sm">Geri bildiriminiz için teşekkürler. İncelendikten sonra yayınlanacaktır.</p>
+                  </div>
+                </motion.div>
+              )}
+
+              {reportStatus === 'error' && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-3"
+                >
+                  <AlertTriangle className="w-6 h-6 shrink-0" />
+                  <div>
+                    <h4 className="font-bold">Bir Hata Oluştu!</h4>
+                    <p className="text-sm">Lütfen internet bağlantınızı kontrol edip tekrar deneyin.</p>
+                  </div>
+                </motion.div>
+              )}
+
               <form onSubmit={handleReport} className="space-y-6">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
