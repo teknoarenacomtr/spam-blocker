@@ -78,7 +78,7 @@ function NumberDetailPage({ phoneNumber }: { phoneNumber: string }) {
       const total = data.length;
       // Count 'spam' or 'fraud' related categories as "spam"
       const spamCount = data.filter(r =>
-        ['Dolandırıcılık / Fraud', 'Bahis / Kumar', 'Taciz / Şaka', 'Siyasi Propaganda', 'Telemarketing / Satış'].includes(r.category)
+        ['Dolandırıcılık / Fraud', 'Bahis / Kumar', 'Taciz / Şaka', 'Siyasi Propaganda', 'Satış ve Pazarlama'].includes(r.category)
       ).length;
 
       const spamPercentage = total > 0 ? Math.round((spamCount / total) * 100) : 0;
@@ -117,6 +117,9 @@ function NumberDetailPage({ phoneNumber }: { phoneNumber: string }) {
           category: reportCategory,
           comment: reportComment,
           reporter_name: reporterName || 'Misafir Kullanıcı',
+          caller_name: '',
+          call_date: new Date().toISOString().split('T')[0],
+          call_time: null,
           created_at: new Date().toISOString(),
           status: 'PENDING',
           upvotes: 0,
@@ -279,7 +282,7 @@ function NumberDetailPage({ phoneNumber }: { phoneNumber: string }) {
                     onChange={(e) => setReportCategory(e.target.value)}
                   >
                     <option value="">Seçiniz...</option>
-                    <option value="Telemarketing / Satış">Telemarketing / Satış</option>
+                    <option value="Satış ve Pazarlama">Satış ve Pazarlama</option>
                     <option value="Dolandırıcılık / Fraud">Dolandırıcılık / Fraud</option>
                     <option value="Anket / Araştırma">Anket / Araştırma</option>
                     <option value="Siyasi Propaganda">Siyasi Propaganda</option>
@@ -683,7 +686,7 @@ function LandingPage() {
                   required
                 >
                   <option value="">Lütfen bir kategori seçin...</option>
-                  <option value="Telemarketing / Satış">Telemarketing / Satış</option>
+                  <option value="Satış ve Pazarlama">Satış ve Pazarlama</option>
                   <option value="Dolandırıcılık / Fraud">Dolandırıcılık / Fraud</option>
                   <option value="Anket / Araştırma">Anket / Araştırma</option>
                   <option value="Siyasi Propaganda">Siyasi Propaganda</option>
@@ -1094,228 +1097,234 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-900 p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="bg-red-600 p-2.5 rounded-xl shadow-md shadow-red-100">
-              <Shield className="text-white w-7 h-7" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Yönetim Paneli</h1>
-              <div className="flex gap-4 mt-2">
-                <button
-                  onClick={() => setActiveTab('RULES')}
-                  className={`text-sm font-medium pb-1 border-b-2 transition ${activeTab === 'RULES' ? 'text-red-600 border-red-600' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
-                >
-                  Kurallar
-                </button>
-                <button
-                  onClick={() => setActiveTab('INBOX')}
-                  className={`text-sm font-medium pb-1 border-b-2 transition flex items-center gap-2 ${activeTab === 'INBOX' ? 'text-red-600 border-red-600' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
-                >
-                  Gelen Kutusu
-                  <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full text-xs font-bold">{incomingReports.length}</span>
-                </button>
+    <>
+      <div className="resin-blob"></div>
+      <div className="glass-orb"></div>
+
+      <div className="min-h-screen font-sans text-gray-900 p-8" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <header className="card mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="bg-red-600 p-2.5 rounded-xl shadow-md shadow-red-100">
+                <Shield className="text-white w-7 h-7" />
               </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-            {message && (
-              <span className="hidden md:flex items-center gap-1 text-green-600 text-sm font-medium bg-green-50 px-3 py-1 rounded-full border border-green-100">
-                <CheckCircle className="w-4 h-4" /> {message}
-              </span>
-            )}
-            <button
-              onClick={() => { fetchRules(); fetchIncomingReports(); }}
-              disabled={loading}
-              title="Yenile"
-              className="p-2.5 bg-gray-50 border border-gray-200 rounded-lg hover:bg-white hover:shadow-md transition text-gray-600"
-            >
-              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <div className="h-8 w-px bg-gray-200 mx-1"></div>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-gray-800 transition font-medium text-sm"
-            >
-              <LogOut className="w-4 h-4" /> Çıkış Yap
-            </button>
-          </div>
-        </header>
-
-        {activeTab === 'RULES' ? (
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Sol Kolon: Form */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-8">
-                <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 pb-4 border-b border-gray-50">
-                  <Plus className="w-5 h-5 text-red-600" /> Yeni Kural Ekle
-                </h2>
-                <form onSubmit={handleAdd} className="flex flex-col gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">Kural Tipi</label>
-                    <select
-                      value={type}
-                      onChange={(e) => setType(e.target.value as 'PHONE' | 'KEYWORD')}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition"
-                    >
-                      <option value="PHONE">Telefon Numarası</option>
-                      <option value="KEYWORD">Yasaklı Kelime</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">Değer</label>
-                    <input
-                      type="text"
-                      placeholder={type === 'PHONE' ? "+90555..." : "Örn: bahis, bonus..."}
-                      value={newValue}
-                      onChange={(e) => setNewValue(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition"
-                    />
-                  </div>
-
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Yönetim Paneli</h1>
+                <div className="flex gap-4 mt-2">
                   <button
-                    type="submit"
-                    className="mt-2 w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 transition font-medium shadow-lg shadow-red-100 flex items-center justify-center gap-2"
+                    onClick={() => setActiveTab('RULES')}
+                    className={`text-sm font-medium pb-1 border-b-2 transition ${activeTab === 'RULES' ? 'text-red-600 border-red-600' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
                   >
-                    <Plus className="w-4 h-4" /> Ekle & Yayınla
+                    Kurallar
                   </button>
-                </form>
+                  <button
+                    onClick={() => setActiveTab('INBOX')}
+                    className={`text-sm font-medium pb-1 border-b-2 transition flex items-center gap-2 ${activeTab === 'INBOX' ? 'text-red-600 border-red-600' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
+                  >
+                    Gelen Kutusu
+                    <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full text-xs font-bold">{incomingReports.length}</span>
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Sağ Kolon: Listeler */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Telefon Listesi */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="bg-gradient-to-r from-red-50 to-white px-6 py-4 border-b border-red-100 flex justify-between items-center">
-                  <h3 className="font-semibold text-red-900 flex items-center gap-2">
-                    <Smartphone className="w-5 h-5 text-red-600" /> Engellenen Numaralar
-                  </h3>
-                  <span className="bg-white border border-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-bold shadow-sm">
-                    {rules.phones.length}
-                  </span>
-                </div>
-                <ul className="divide-y divide-gray-50 max-h-[300px] overflow-y-auto custom-scrollbar">
-                  {rules.phones.map((phone, i) => (
-                    <li key={i} className="px-6 py-3.5 flex justify-between items-center hover:bg-red-50/30 transition group">
-                      <div>
-                        <div className="font-mono text-gray-700 font-medium">{phone.value}</div>
-                        {phone.description && <div className="text-xs text-gray-400 italic">{phone.description}</div>}
-                      </div>
-                      <button
-                        onClick={() => handleDelete(phone.value, 'PHONE')}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition opacity-0 group-hover:opacity-100"
-                        title="Sil"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </li>
-                  ))}
-                  {rules.phones.length === 0 && (
-                    <li className="p-8 text-center text-gray-400 flex flex-col items-center gap-2">
-                      <Smartphone className="w-8 h-8 text-gray-200" />
-                      Henüz numara eklenmemiş
-                    </li>
-                  )}
-                </ul>
-              </div>
-
-              {/* Keyword Listesi */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="bg-gradient-to-r from-orange-50 to-white px-6 py-4 border-b border-orange-100 flex justify-between items-center">
-                  <h3 className="font-semibold text-orange-900 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-orange-600" /> Yasaklı Kelimeler
-                  </h3>
-                  <span className="bg-white border border-orange-100 text-orange-700 text-xs px-2.5 py-1 rounded-full font-bold shadow-sm">
-                    {rules.keywords.length}
-                  </span>
-                </div>
-                <ul className="divide-y divide-gray-50 max-h-[300px] overflow-y-auto custom-scrollbar">
-                  {rules.keywords.map((kw, i) => (
-                    <li key={i} className="px-6 py-3.5 flex justify-between items-center hover:bg-orange-50/30 transition group">
-                      <div>
-                        <div className="font-medium text-gray-700">{kw.value}</div>
-                        {kw.description && <div className="text-xs text-gray-400 italic">{kw.description}</div>}
-                      </div>
-                      <button
-                        onClick={() => handleDelete(kw.value, 'KEYWORD')}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition opacity-0 group-hover:opacity-100"
-                        title="Sil"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </li>
-                  ))}
-                  {rules.keywords.length === 0 && (
-                    <li className="p-8 text-center text-gray-400 flex flex-col items-center gap-2">
-                      <MessageSquare className="w-8 h-8 text-gray-200" />
-                      Henüz kelime eklenmemiş
-                    </li>
-                  )}
-                </ul>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* --- INBOX (Gelen Şikayetler) --- */
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-              <h3 className="font-bold text-gray-900">Onay Bekleyen Şikayetler</h3>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {incomingReports.map((report) => (
-                <div key={report.id} className="p-6 hover:bg-gray-50 transition flex flex-col md:flex-row gap-4 justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="bg-gray-900 text-white px-3 py-1 rounded-md font-mono font-bold">
-                        {report.phone_number}
-                      </span>
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                        {report.category}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {new Date(report.created_at).toLocaleString('tr-TR')}
-                      </span>
-                    </div>
-                    {report.comment && (
-                      <p className="text-gray-600 italic mb-2">"{report.comment}"</p>
-                    )}
-                    <div className="text-xs text-gray-400 flex items-center gap-1">
-                      <User className="w-3 h-3" /> {report.reporter_name || 'Misafir'}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleDeleteReport(report.id)}
-                      className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-100 hover:text-red-600 text-sm font-medium transition"
-                    >
-                      Sil
-                    </button>
-                    <button
-                      onClick={() => handleApproveReport(report)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition shadow-lg shadow-green-100"
-                    >
-                      Onayla & Ekle
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {incomingReports.length === 0 && (
-                <div className="p-12 text-center text-gray-400">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p>Henüz yeni şikayet yok.</p>
-                </div>
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+              {message && (
+                <span className="hidden md:flex items-center gap-1 text-green-600 text-sm font-medium bg-green-50 px-3 py-1 rounded-full border border-green-100">
+                  <CheckCircle className="w-4 h-4" /> {message}
+                </span>
               )}
+              <button
+                onClick={() => { fetchRules(); fetchIncomingReports(); }}
+                disabled={loading}
+                title="Yenile"
+                className="p-2.5 bg-gray-50 border border-gray-200 rounded-lg hover:bg-white hover:shadow-md transition text-gray-600"
+              >
+                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              <div className="h-8 w-px bg-gray-200 mx-1"></div>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-gray-800 transition font-medium text-sm"
+              >
+                <LogOut className="w-4 h-4" /> Çıkış Yap
+              </button>
             </div>
-          </div>
-        )}
+          </header>
+
+          {activeTab === 'RULES' ? (
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* Sol Kolon: Form */}
+              <div className="lg:col-span-1">
+                <div className="card sticky top-8">
+                  <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 pb-4 border-b border-gray-50">
+                    <Plus className="w-5 h-5 text-red-600" /> Yeni Kural Ekle
+                  </h2>
+                  <form onSubmit={handleAdd} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1.5 block">Kural Tipi</label>
+                      <select
+                        value={type}
+                        onChange={(e) => setType(e.target.value as 'PHONE' | 'KEYWORD')}
+                        className="input-control"
+                      >
+                        <option value="PHONE">Telefon Numarası</option>
+                        <option value="KEYWORD">Yasaklı Kelime</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1.5 block">Değer</label>
+                      <input
+                        type="text"
+                        placeholder={type === 'PHONE' ? "+90555..." : "Örn: bahis, bonus..."}
+                        value={newValue}
+                        onChange={(e) => setNewValue(e.target.value)}
+                        className="input-control"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="btn-primary w-full flex items-center justify-center gap-2"
+                      style={{ background: 'var(--deep-red)', borderColor: 'var(--deep-red)' }}
+                    >
+                      <Plus className="w-4 h-4" /> Ekle & Yayınla
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              {/* Sağ Kolon: Listeler */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Telefon Listesi */}
+                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div className="bg-gradient-to-r from-red-50 to-white px-6 py-4 border-b border-red-100 flex justify-between items-center">
+                    <h3 className="font-semibold text-red-900 flex items-center gap-2">
+                      <Smartphone className="w-5 h-5 text-red-600" /> Engellenen Numaralar
+                    </h3>
+                    <span className="bg-white border border-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-bold shadow-sm">
+                      {rules.phones.length}
+                    </span>
+                  </div>
+                  <ul className="divide-y divide-gray-50 max-h-[300px] overflow-y-auto custom-scrollbar">
+                    {rules.phones.map((phone, i) => (
+                      <li key={i} className="px-6 py-3.5 flex justify-between items-center hover:bg-red-50/30 transition group">
+                        <div>
+                          <div className="font-mono text-gray-700 font-medium">{phone.value}</div>
+                          {phone.description && <div className="text-xs text-gray-400 italic">{phone.description}</div>}
+                        </div>
+                        <button
+                          onClick={() => handleDelete(phone.value, 'PHONE')}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition opacity-0 group-hover:opacity-100"
+                          title="Sil"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </li>
+                    ))}
+                    {rules.phones.length === 0 && (
+                      <li className="p-8 text-center text-gray-400 flex flex-col items-center gap-2">
+                        <Smartphone className="w-8 h-8 text-gray-200" />
+                        Henüz numara eklenmemiş
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
+                {/* Keyword Listesi */}
+                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div className="bg-gradient-to-r from-orange-50 to-white px-6 py-4 border-b border-orange-100 flex justify-between items-center">
+                    <h3 className="font-semibold text-orange-900 flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-orange-600" /> Yasaklı Kelimeler
+                    </h3>
+                    <span className="bg-white border border-orange-100 text-orange-700 text-xs px-2.5 py-1 rounded-full font-bold shadow-sm">
+                      {rules.keywords.length}
+                    </span>
+                  </div>
+                  <ul className="divide-y divide-gray-50 max-h-[300px] overflow-y-auto custom-scrollbar">
+                    {rules.keywords.map((kw, i) => (
+                      <li key={i} className="px-6 py-3.5 flex justify-between items-center hover:bg-orange-50/30 transition group">
+                        <div>
+                          <div className="font-medium text-gray-700">{kw.value}</div>
+                          {kw.description && <div className="text-xs text-gray-400 italic">{kw.description}</div>}
+                        </div>
+                        <button
+                          onClick={() => handleDelete(kw.value, 'KEYWORD')}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition opacity-0 group-hover:opacity-100"
+                          title="Sil"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </li>
+                    ))}
+                    {rules.keywords.length === 0 && (
+                      <li className="p-8 text-center text-gray-400 flex flex-col items-center gap-2">
+                        <MessageSquare className="w-8 h-8 text-gray-200" />
+                        Henüz kelime eklenmemiş
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* --- INBOX (Gelen Şikayetler) --- */
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                <h3 className="font-bold text-gray-900">Onay Bekleyen Şikayetler</h3>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {incomingReports.map((report) => (
+                  <div key={report.id} className="p-6 hover:bg-gray-50 transition flex flex-col md:flex-row gap-4 justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="bg-gray-900 text-white px-3 py-1 rounded-md font-mono font-bold">
+                          {report.phone_number}
+                        </span>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                          {report.category}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(report.created_at).toLocaleString('tr-TR')}
+                        </span>
+                      </div>
+                      {report.comment && (
+                        <p className="text-gray-600 italic mb-2">"{report.comment}"</p>
+                      )}
+                      <div className="text-xs text-gray-400 flex items-center gap-1">
+                        <User className="w-3 h-3" /> {report.reporter_name || 'Misafir'}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleDeleteReport(report.id)}
+                        className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-100 hover:text-red-600 text-sm font-medium transition"
+                      >
+                        Sil
+                      </button>
+                      <button
+                        onClick={() => handleApproveReport(report)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition shadow-lg shadow-green-100"
+                      >
+                        Onayla & Ekle
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {incomingReports.length === 0 && (
+                  <div className="p-12 text-center text-gray-400">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                    <p>Henüz yeni şikayet yok.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
