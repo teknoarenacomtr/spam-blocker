@@ -188,11 +188,9 @@ function AboutPage() {
 }
 
 // -----------------------------------------------------------------------------
-// BİLEŞEN: LANDING PAGE (CELLULOSE EDITION)
+// BİLEŞEN: LANDING PAGE (RESIN EDITION)
 // -----------------------------------------------------------------------------
 function LandingPage() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
   // Rapor Formu State'leri
   const [reportPhone, setReportPhone] = useState('');
   const [reportCategory, setReportCategory] = useState('');
@@ -212,23 +210,6 @@ function LandingPage() {
 
   useEffect(() => {
     fetchRecentReports();
-
-    // Intersection Observer for reveal animations
-    const observerOptions = {
-      threshold: 0.1
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-        }
-      });
-    }, observerOptions);
-
-    document.querySelectorAll('[data-reveal]').forEach((el) => observer.observe(el));
-
-    return () => observer.disconnect();
   }, []);
 
   const fetchRecentReports = async () => {
@@ -237,21 +218,10 @@ function LandingPage() {
       .select('*')
       .neq('status', 'REJECTED')
       .order('created_at', { ascending: false })
-      .limit(8);
+      .limit(6); // Grid layout looks better with 3 or 6 items
 
     if (data) setRecentReports(data);
   };
-
-  const categories = [
-    { id: 'Telemarketing / Satış', label: 'Telemarketing / Satış' },
-    { id: 'Dolandırıcılık / Fraud', label: 'Dolandırıcılık / Fraud' },
-    { id: 'Anket / Araştırma', label: 'Anket / Araştırma' },
-    { id: 'Siyasi Propaganda', label: 'Siyasi Propaganda' },
-    { id: 'Bahis / Kumar', label: 'Bahis / Kumar' },
-    { id: 'Borç Tahsilatı', label: 'Borç Tahsilatı' },
-    { id: 'Taciz / Şaka', label: 'Taciz / Şaka' },
-    { id: 'Diğer', label: 'Diğer' },
-  ];
 
   const handleReport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,244 +293,270 @@ function LandingPage() {
 
   return (
     <>
-      <svg className="texture-overlay">
-        <filter id="grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
-          <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.4 0" />
-          <feComposite operator="in" in2="SourceGraphic" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#grain)" />
-      </svg>
+      <div className="resin-blob"></div>
+      <div className="glass-orb"></div>
 
-      <header>
-        <div className="logo">
-          <h2 style={{ fontSize: '1.5rem' }}>Spam Blocker</h2>
-        </div>
-        <nav>
-          <a href="/">Ana Sayfa</a>
-          <a href="#search">Sorgula</a>
-          <a href="#report">Spam Bildir</a>
-          <a href="/about">Hakkımızda</a>
-          <a href="#" style={{ border: '2px solid var(--ink)', padding: '0.5rem 1rem' }}>Uygulamayı İndir</a>
-        </nav>
-      </header>
+      <nav>
+        <a href="#" className="logo">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="8" fill="#be123c" />
+            <path d="M12 7V17M12 7L15 10M12 7L9 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Spam Blocker
+        </a>
+        <ul className="nav-links">
+          <li><a href="/">Ana Sayfa</a></li>
+          <li><a href="#search">Sorgula</a></li>
+          <li><a href="#report">Spam Bildir</a></li>
+          <li><a href="/about">Hakkımızda</a></li>
+          <li><a href="/admin">Admin</a></li>
+        </ul>
+        <a href="#" className="btn-download">Uygulamayı İndir</a>
+      </nav>
 
-      <main className="container">
-        {/* Hero Section */}
-        <section className="hero" data-reveal>
-          <div>
-            <p className="mono" style={{ marginBottom: '1rem' }}>🔍 Türkiye'nin En Kapsamlı Veritabanı</p>
-            <h1>Bu Numara Güvenli mi?</h1>
+      <section className="hero">
+        <span className="badge">TÜRKİYE'NİN EN KAPSAMLI SPAM VERİTABANI</span>
+        <h1>Bu Numara Güvenli mi?</h1>
 
-            {/* Search Result Display */}
-            <AnimatePresence>
-              {searchResult && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-8 p-6 border-2 border-black"
-                  style={{
-                    background: searchResult === 'SPAM' ? 'var(--accent-red)' : searchResult === 'SUSPICIOUS' ? '#f1c40f' : '#2ecc71',
-                    color: searchResult === 'SPAM' ? 'white' : 'black'
-                  }}
-                >
-                  <h3 className="text-2xl mb-2">
-                    {searchResult === 'SPAM' ? 'TEHLİKELİ NUMARA' : searchResult === 'SUSPICIOUS' ? 'ŞÜPHELİ NUMARA' : 'TEMİZ GÖRÜNÜYOR'}
-                  </h3>
-                  <p className="mono text-sm">
-                    {searchResult === 'SPAM'
-                      ? 'SİSTEM TARAFINDAN ONAYLANMIŞ SPAM KAYDI BULUNDU.'
-                      : searchResult === 'SUSPICIOUS'
-                        ? `BU NUMARA HAKKINDA ${reportCount} ADET DOĞRULANMAMIŞ ŞİKAYET MEVCUT.`
-                        : 'VERİTABANINDA KAYIT BULUNAMADI.'}
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+        {/* Search Result Display */}
+        <AnimatePresence>
+          {searchResult && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                maxWidth: '700px',
+                margin: '0 auto 24px auto',
+                padding: '16px',
+                borderRadius: '16px',
+                background: searchResult === 'SPAM' ? 'var(--deep-red)' : searchResult === 'SUSPICIOUS' ? '#f59e0b' : '#10b981',
+                color: 'white',
+                fontWeight: 'bold',
+                boxShadow: 'var(--shadow-soft)'
+              }}
+            >
+              <h3 style={{ fontSize: '1.2rem', marginBottom: '4px' }}>
+                {searchResult === 'SPAM' ? '⚠️ TEHLİKELİ NUMARA' : searchResult === 'SUSPICIOUS' ? '⚠️ ŞÜPHELİ NUMARA' : '✅ TEMİZ GÖRÜNÜYOR'}
+              </h3>
+              <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                {searchResult === 'SPAM'
+                  ? 'Sistem tarafından onaylanmış spam kaydı bulundu.'
+                  : searchResult === 'SUSPICIOUS'
+                    ? `Bu numara hakkında ${reportCount} adet doğrulanmamış şikayet mevcut.`
+                    : 'Veritabanında kayıt bulunamadı.'}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <form onSubmit={handleSearch} className="search-container" id="search">
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Telefon Numarası Girin (Örn: 0555...)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button type="submit" className="search-btn">🔍 Sorgula</button>
+        </form>
+      </section>
+
+      <main className="main-grid">
+        <section className="card" id="report">
+          <div className="section-title">
+            <span style={{ fontSize: '1.8rem' }}>🚩</span>
+            <h2>Rapor Formu</h2>
           </div>
-          <div className="search-module">
-            <form onSubmit={handleSearch} style={{ display: 'flex', width: '100%' }}>
+
+          {reportStatus === 'success' && (
+            <div style={{ padding: '1rem', background: '#dcfce7', color: '#166534', borderRadius: '12px', marginBottom: '20px', fontWeight: '600' }}>
+              ✅ Raporunuz başarıyla alındı!
+            </div>
+          )}
+
+          {reportStatus === 'error' && (
+            <div style={{ padding: '1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '12px', marginBottom: '20px', fontWeight: '600' }}>
+              ❌ Bir hata oluştu. Lütfen tekrar deneyin.
+            </div>
+          )}
+
+          <form onSubmit={handleReport}>
+            <div className="form-group">
+              <label>Telefon Numarası *</label>
               <input
                 type="text"
-                placeholder="Telefon Numarası Girin (Örn: 0555...)"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                className="input-control"
+                placeholder="örn: 0212 922 42 89 veya 0555 123 45 67"
+                value={reportPhone}
+                onChange={(e) => setReportPhone(e.target.value)}
+                required
               />
-              <button type="submit">Sorgula</button>
-            </form>
-          </div>
-        </section>
-
-        {/* Reporting Form & Instructions */}
-        <div className="grid-layout">
-          <aside data-reveal>
-            <h3 style={{ marginBottom: '3rem', fontSize: '2rem' }}>Spam Bildirimi Nasıl Yapılır?</h3>
-            <div className="instruction-step" data-step="01">
-              <h4 className="mono">Numarayı Girin</h4>
-              <p>Sizi arayan numarayı formdaki ilgili alana eksiksiz girin.</p>
+              <p className="char-count" style={{ textAlign: 'left', marginTop: '8px' }}>Numarayı istediğiniz formatta girebilirsiniz (boşluk, tire, parantez kullanabilirsiniz)</p>
             </div>
-            <div className="instruction-step" data-step="02">
-              <h4 className="mono">Kategori Seçin</h4>
-              <p>Telemarketing, dolandırıcılık veya anket gibi türü belirleyin.</p>
-            </div>
-            <div className="instruction-step" data-step="03">
-              <h4 className="mono">Detayları Paylaşın</h4>
-              <p>Ne söylediler, nasıl davrandılar? Diğer kullanıcıları uyarın.</p>
-            </div>
-            <div className="instruction-step" data-step="04">
-              <h4 className="mono">Raporu Gönderin</h4>
-              <p>Onaylayın ve topluluğumuzu daha güvenli hale getirin.</p>
-            </div>
-          </aside>
 
-          <section className="report-form" data-reveal id="report">
-            <h3 style={{ marginBottom: '1rem', color: 'var(--accent-red)' }}>🚩 Rapor Formu</h3>
-
-            {reportStatus === 'success' && (
-              <div style={{ padding: '1rem', background: '#2ecc71', color: 'white', fontWeight: 'bold' }}>
-                RAPORUNUZ BAŞARIYLA ALINDI!
-              </div>
-            )}
-
-            {reportStatus === 'error' && (
-              <div style={{ padding: '1rem', background: 'var(--accent-red)', color: 'white', fontWeight: 'bold' }}>
-                BİR HATA OLUŞTU. LÜTFEN TEKRAR DENEYİN.
-              </div>
-            )}
-
-            <form onSubmit={handleReport} className="report-form">
-              <div className="form-group">
-                <label>Telefon Numarası *</label>
-                <input
-                  type="text"
-                  placeholder="örn: 0212 922 42 89"
-                  value={reportPhone}
-                  onChange={(e) => setReportPhone(e.target.value)}
-                  required
-                />
-                <small className="mono" style={{ opacity: 0.6, fontSize: '0.6rem' }}>Numarayı istediğiniz formatta girebilirsiniz (boşluk, tire kullanabilirsiniz)</small>
-              </div>
-
+            <div className="form-row">
               <div className="form-group">
                 <label>Arama Türü *</label>
                 <select
+                  className="input-control"
                   value={reportCategory}
                   onChange={(e) => setReportCategory(e.target.value)}
                   required
                 >
                   <option value="">Lütfen bir kategori seçin...</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.label}</option>
-                  ))}
+                  <option value="Telemarketing / Satış">Telemarketing / Satış</option>
+                  <option value="Dolandırıcılık / Fraud">Dolandırıcılık / Fraud</option>
+                  <option value="Anket / Araştırma">Anket / Araştırma</option>
+                  <option value="Siyasi Propaganda">Siyasi Propaganda</option>
+                  <option value="Bahis / Kumar">Bahis / Kumar</option>
+                  <option value="Borç Tahsilatı">Borç Tahsilatı</option>
+                  <option value="Taciz / Şaka">Taciz / Şaka</option>
+                  <option value="Diğer">Diğer</option>
                 </select>
               </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                <div className="form-group">
-                  <label>Arayan Adı / Firma</label>
-                  <input
-                    type="text"
-                    placeholder="Örn: ABC Şirketi"
-                    value={callerName}
-                    onChange={(e) => setCallerName(e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Arama Tarihi & Saat</label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input
-                      type="date"
-                      value={callDate}
-                      onChange={(e) => setCallDate(e.target.value)}
-                      style={{ width: '60%' }}
-                    />
-                    <input
-                      type="time"
-                      value={callTime}
-                      onChange={(e) => setCallTime(e.target.value)}
-                      style={{ width: '40%' }}
-                    />
-                  </div>
-                </div>
-              </div>
-
               <div className="form-group">
-                <label>Detaylı Açıklama</label>
-                <textarea
-                  rows={4}
-                  placeholder="Arama hakkında detaylı bilgi verin..."
-                  value={reportComment}
-                  onChange={(e) => setReportComment(e.target.value)}
-                ></textarea>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }} className="mono">
-                  <span style={{ fontSize: '0.65rem' }}>{reportComment.length} / 500 karakter</span>
-                  <span style={{ fontSize: '0.65rem' }}>{500 - reportComment.length} karakter kaldı</span>
-                </div>
+                <label>Arayan Adı / Firma Adı</label>
+                <input
+                  type="text"
+                  className="input-control"
+                  placeholder="Örn: ABC Şirketi, Ahmet Yılmaz"
+                  value={callerName}
+                  onChange={(e) => setCallerName(e.target.value)}
+                />
               </div>
+            </div>
 
-              <div className="form-footer">
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => {
-                    setReportPhone('');
-                    setReportCategory('');
-                    setReportComment('');
-                    setCallerName('');
-                  }}
-                >
-                  İptal
-                </button>
-                <button type="submit" className="btn-primary" disabled={isReporting}>
-                  {isReporting ? 'Gönderiliyor...' : '🚩 Raporu Gönder'}
-                </button>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Arama Tarihi</label>
+                <input
+                  type="date"
+                  className="input-control"
+                  value={callDate}
+                  onChange={(e) => setCallDate(e.target.value)}
+                />
               </div>
-            </form>
-          </section>
+              <div className="form-group">
+                <label>Arama Saati</label>
+                <input
+                  type="time"
+                  className="input-control"
+                  value={callTime}
+                  onChange={(e) => setCallTime(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Detaylı Açıklama</label>
+              <textarea
+                className="input-control"
+                placeholder="Arama hakkında detaylı bilgi verin... (Örn: Ne söylediler, ne istediler, nasıl davrandılar?)"
+                value={reportComment}
+                onChange={(e) => setReportComment(e.target.value)}
+              ></textarea>
+              <div className="char-count">{reportComment.length} / 500 karakter | {500 - reportComment.length} karakter kaldı</div>
+            </div>
+
+            <div className="form-actions">
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => {
+                  setReportPhone('');
+                  setReportCategory('');
+                  setReportComment('');
+                  setCallerName('');
+                }}
+              >
+                İptal
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={isReporting}>
+                {isReporting ? 'Gönderiliyor...' : '🚩 Raporu Gönder'}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <aside>
+          <div className="how-to-card">
+            <h3 style={{ marginBottom: '30px', fontSize: '1.4rem' }}>Spam Bildirimi Nasıl Yapılır?</h3>
+
+            <div className="step-item">
+              <div className="step-num">1</div>
+              <div className="step-content">
+                <h4>Numarayı girin</h4>
+                <p>Sizi arayan numarayı yukarıdaki forma eksiksiz girin.</p>
+              </div>
+            </div>
+
+            <div className="step-item">
+              <div className="step-num">2</div>
+              <div className="step-content">
+                <h4>Kategoriyi seçin</h4>
+                <p>Telemarketing, dolandırıcılık, anket gibi uygun etiketi belirleyin.</p>
+              </div>
+            </div>
+
+            <div className="step-item">
+              <div className="step-num">3</div>
+              <div className="step-content">
+                <h4>Açıklama ekleyin</h4>
+                <p>Ne söylediler, nasıl davrandılar? Detaylar diğer kullanıcılar için kritiktir.</p>
+              </div>
+            </div>
+
+            <div className="step-item">
+              <div className="step-num">4</div>
+              <div className="step-content">
+                <h4>Halkı uyarın</h4>
+                <p>Raporu gönderin ve veritabanımızın güncel kalmasını sağlayın.</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <section className="feed-section">
+        <div className="section-title">
+          <span style={{ fontSize: '1.8rem' }}>🔔</span>
+          <h2>Son Şikayetler</h2>
         </div>
 
-        {/* Recent Complaints */}
-        <section className="complaints-feed" data-reveal>
-          <h3 style={{ marginBottom: '2rem', borderBottom: '2px solid var(--ink)', paddingBottom: '1rem' }}>Son Şikayetler</h3>
-
+        <div className="feed-grid">
           {recentReports.map((report) => (
             <div key={report.id} className="complaint-card">
-              <div className="complaint-meta">
-                <span className="mono">{new Date(report.created_at).toLocaleDateString('tr-TR')}</span>
-                <span className="tag" style={report.category.includes('Dolandırıcılık') ? { background: 'var(--accent-red)' } : {}}>
+              <div className="complaint-header">
+                <div className="user-info">
+                  <h5>{report.reporter_name || 'Misafir Kullanıcı'}</h5>
+                  <span>{new Date(report.created_at).toLocaleDateString('tr-TR')}</span>
+                </div>
+                <span className="category-tag" style={report.category.includes('Dolandırıcılık') ? { background: '#fee2e2', color: '#991b1b' } : {}}>
                   {report.category}
                 </span>
-                <strong style={{ marginTop: '0.5rem' }}>{report.phone_number}</strong>
-                {report.status === 'APPROVED' && (
-                  <span style={{ color: '#2ecc71', fontSize: '0.7rem', fontWeight: 'bold' }}>✓ DOĞRULANMIŞ</span>
-                )}
               </div>
-              <div className="complaint-body">
-                <p style={{ fontStyle: 'italic' }}>
-                  "{report.comment || 'Açıklama yok.'}"
-                </p>
-                <p className="mono" style={{ marginTop: '1rem', opacity: 0.6 }}>
-                  — {report.caller_name ? `Arayan: ${report.caller_name}` : 'Bilinmeyen Arayan'} ({report.reporter_name || 'Misafir'})
-                </p>
-              </div>
-              <div className="actions">
-                <button className="action-btn">Faydalı</button>
-                <button className="action-btn">Katılmıyorum</button>
+              <span className="phone-number">{report.phone_number}</span>
+              <p className="comment">"{report.comment || 'Açıklama yok.'}"</p>
+              <div className="card-footer">
+                <button className="action-btn">👍 Faydalı</button>
+                <button className="action-btn">👎 Katılmıyorum</button>
               </div>
             </div>
           ))}
-        </section>
-      </main>
+          {recentReports.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-light)' }}>
+              Henüz rapor bulunmuyor. İlk raporu siz gönderin!
+            </div>
+          )}
+        </div>
+      </section>
 
       <footer>
-        <div className="footer-content">
-          <div>
-            <h2 style={{ marginBottom: '1rem' }}>Spam Blocker</h2>
-            <p style={{ maxWidth: '400px', opacity: 0.7 }}>Spam numaraları ayıklamak, topluluğu bilgilendirmek ve huzurlu bir iletişim sağlamak için geliştirilmiş web ve mobil uygulaması.</p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p className="mono">© 2026 Spam Blocker. Tüm hakları saklıdır.</p>
-          </div>
+        <div className="footer-logo">
+          Spam Blocker
+        </div>
+        <div className="copy">
+          © 2026 Spam Blocker. Tüm hakları saklıdır.
         </div>
       </footer>
     </>
@@ -1093,23 +1089,36 @@ function App() {
   if (currentPath === '/about') {
     return (
       <>
-        <div className="texture-overlay"></div>
-        <header className="cellulose-header">
-          <div className="flex items-center gap-2">
-            <div style={{ width: 24, height: 24, background: 'var(--accent-red)' }}></div>
-            <span style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.05em', fontSize: '1.2rem' }}>SPAM BLOCKER</span>
-          </div>
-          <nav className="cellulose-nav hidden md:block">
-            <a href="/">ANA SAYFA</a>
-            <a href="/#search">SORGULA</a>
-            <a href="/#report">RAPOR ET</a>
-            <a href="/about" className="font-bold">HAKKIMIZDA</a>
-            <a href="/admin" className="mono" style={{ fontSize: '0.8rem', opacity: 0.5 }}>LOGIN</a>
-          </nav>
-        </header>
+        <div className="resin-blob"></div>
+        <div className="glass-orb"></div>
+
+        <nav>
+          <a href="#" className="logo">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="8" fill="#be123c" />
+              <path d="M12 7V17M12 7L15 10M12 7L9 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Spam Blocker
+          </a>
+          <ul className="nav-links">
+            <li><a href="/">Ana Sayfa</a></li>
+            <li><a href="/#search">Sorgula</a></li>
+            <li><a href="/#report">Spam Bildir</a></li>
+            <li><a href="/about">Hakkımızda</a></li>
+            <li><a href="/admin">Admin</a></li>
+          </ul>
+          <a href="#" className="btn-download">Uygulamayı İndir</a>
+        </nav>
+
         <AboutPage />
-        <footer className="mt-20 py-8 border-t-2 border-black text-center mono text-sm opacity-50">
-          &copy; 2026 SPAM BLOCKER. CELLULOSE EDITION.
+
+        <footer>
+          <div className="footer-logo">
+            Spam Blocker
+          </div>
+          <div className="copy">
+            © 2026 Spam Blocker. Tüm hakları saklıdır.
+          </div>
         </footer>
       </>
     );
