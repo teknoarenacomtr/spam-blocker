@@ -1,0 +1,243 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+    --paper: #f4f1ea;
+    --ink: #1a1a1a;
+    --accent-red: #d13a2d;
+    --accent-blue: #2d5da1;
+    --grain-opacity: 0.12;
+    --ease: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Global Reset & Base Styles */
+/* Note: We are keeping some Tailwind resets implicitly, but overriding here */
+body {
+    background-color: var(--paper) !important;
+    color: var(--ink) !important;
+    font-family: 'Inter', sans-serif !important;
+    line-height: 1.5;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Cellulose Texture Overlay */
+.texture-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: var(--grain-opacity);
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+}
+
+/* Typography */
+h1, h2, h3 { 
+    font-weight: 900 !important; 
+    text-transform: uppercase; 
+    letter-spacing: -0.03em;
+    line-height: 0.9 !important;
+}
+
+.mono { font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; text-transform: uppercase; }
+
+/* Layout Components */
+.cellulose-header {
+    padding: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--ink);
+    background: var(--paper);
+}
+
+.cellulose-nav a {
+    text-decoration: none;
+    color: var(--ink);
+    margin-left: 2rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: opacity 0.3s var(--ease);
+}
+
+.cellulose-nav a:hover { opacity: 0.5; }
+
+.cellulose-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+}
+
+/* Hero / Search Section */
+.hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    margin-bottom: 6rem;
+}
+
+@media (max-width: 768px) {
+    .hero { grid-template-columns: 1fr; gap: 2rem; }
+}
+
+.hero-text h1 {
+    font-size: 5rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+    .hero-text h1 { font-size: 3rem; }
+}
+
+.search-module {
+    background: var(--ink);
+    padding: 2rem;
+    color: var(--paper);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+}
+
+.search-module::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: -10px;
+    bottom: -10px;
+    border: 2px solid var(--ink);
+    z-index: -1;
+}
+
+.search-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--paper);
+    color: var(--paper);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.5rem;
+    padding: 1rem 0;
+    outline: none;
+    margin-bottom: 1rem;
+}
+
+.search-input::placeholder { color: rgba(244, 241, 234, 0.5); }
+
+.btn-cellulose {
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: var(--accent-red);
+    color: var(--paper);
+    text-decoration: none;
+    font-weight: 700;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s var(--ease);
+}
+
+.btn-cellulose:hover { transform: translateY(-2px); }
+
+.btn-cellulose.secondary {
+    background: transparent;
+    border: 2px solid var(--ink);
+    color: var(--ink);
+}
+
+.btn-cellulose.secondary:hover {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+/* Report Form */
+.report-section {
+    border-top: 2px solid var(--ink);
+    padding-top: 4rem;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 4rem;
+    margin-bottom: 6rem;
+}
+
+@media (max-width: 768px) {
+    .report-section { grid-template-columns: 1fr; }
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+}
+
+.input-group { margin-bottom: 1.5rem; }
+.input-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
+
+.input-field {
+    width: 100%;
+    padding: 1rem;
+    background: transparent;
+    border: 2px solid var(--ink);
+    font-family: inherit;
+    font-size: 1rem;
+    outline: none;
+    transition: background 0.2s;
+    border-radius: 0 !important; /* Force square corners */
+}
+
+.input-field:focus { background: rgba(0,0,0,0.05); }
+
+/* Recent Reports Grid */
+.grid-reports {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.complaint-card {
+    border: 2px solid var(--ink);
+    padding: 1.5rem;
+    position: relative;
+    transition: transform 0.2s;
+    background: var(--paper);
+}
+
+.complaint-card:hover { transform: translate(-4px, -4px); box-shadow: 4px 4px 0 var(--ink); }
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(26, 26, 26, 0.2);
+    padding-bottom: 0.5rem;
+}
+
+.spam-tag {
+    background: var(--accent-red);
+    color: var(--paper);
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    border: 1px solid var(--ink);
+    margin-bottom: 0.5rem;
+}
+.status-badge.approved { background: #2ecc71; color: white; border-color: #2ecc71; }
+.status-badge.pending { background: #f1c40f; color: black; border-color: #f1c40f; }

@@ -214,11 +214,10 @@ function LandingPage() {
   }, []);
 
   const fetchRecentReports = async () => {
-    // Hem APPROVED hem PENDING olanları çekelim
-    // APPROVED olanlar kesin spam, PENDING olanlar şüpheli
     const { data } = await supabase
       .from('user_reports')
       .select('*')
+      .neq('status', 'REJECTED')
       .order('created_at', { ascending: false })
       .limit(8);
 
@@ -296,7 +295,8 @@ function LandingPage() {
     const { count } = await supabase
       .from('user_reports')
       .select('*', { count: 'exact', head: true })
-      .eq('phone_number', searchQuery);
+      .eq('phone_number', searchQuery)
+      .neq('status', 'REJECTED');
 
     if (count && count > 0) {
       setReportCount(count);
@@ -1226,47 +1226,26 @@ function App() {
   // Hakkımızda Sayfası
   if (currentPath === '/about') {
     return (
-      <div className="min-h-screen bg-gray-50 font-sans text-gray-900 overflow-x-hidden">
-        {/* Navbar (About için tekrar kullanıyoruz, normalde component yapılmalıydı) */}
-        <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 transition-all duration-300">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-20 items-center">
-              <a href="/" className="flex items-center gap-2 group">
-                <div className="bg-gradient-to-tr from-red-600 to-orange-500 p-2 rounded-xl shadow-lg shadow-red-200 group-hover:scale-105 transition-transform">
-                  <Shield className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
-                  Spam Blocker
-                </span>
-              </a>
-
-              {/* Desktop Menu */}
-              <div className="hidden md:flex items-center gap-8">
-                <a href="/" className="text-gray-600 hover:text-red-600 font-medium transition">Ana Sayfa</a>
-                <a href="/#search" className="text-gray-600 hover:text-red-600 font-medium transition">Sorgula</a>
-                <a href="/#report" className="text-gray-600 hover:text-red-600 font-medium transition">Spam Bildir</a>
-                <a href="/about" className="text-red-600 font-bold transition">Hakkımızda</a>
-                <button className="bg-gray-900 text-white px-6 py-2.5 rounded-full hover:bg-gray-800 transition font-medium shadow-xl shadow-gray-200">
-                  Uygulamayı İndir
-                </button>
-              </div>
-            </div>
+      <>
+        <div className="texture-overlay"></div>
+        <header className="cellulose-header">
+          <div className="flex items-center gap-2">
+            <div style={{ width: 24, height: 24, background: 'var(--accent-red)' }}></div>
+            <span style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.05em', fontSize: '1.2rem' }}>SPAM BLOCKER</span>
           </div>
-        </nav>
+          <nav className="cellulose-nav hidden md:block">
+            <a href="/">ANA SAYFA</a>
+            <a href="/#search">SORGULA</a>
+            <a href="/#report">RAPOR ET</a>
+            <a href="/about" className="font-bold">HAKKIMIZDA</a>
+            <a href="/admin" className="mono" style={{ fontSize: '0.8rem', opacity: 0.5 }}>LOGIN</a>
+          </nav>
+        </header>
         <AboutPage />
-        {/* Footer */}
-        <footer className="bg-gray-900 text-gray-400 py-16 border-t border-gray-800">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2 text-white">
-              <Shield className="w-6 h-6" />
-              <span className="font-bold text-lg">Spam Blocker</span>
-            </div>
-            <div className="text-sm">
-              &copy; 2026 Spam Blocker. Tüm hakları saklıdır.
-            </div>
-          </div>
+        <footer className="mt-20 py-8 border-t-2 border-black text-center mono text-sm opacity-50">
+          &copy; 2026 SPAM BLOCKER. CELLULOSE EDITION.
         </footer>
-      </div>
+      </>
     );
   }
 
