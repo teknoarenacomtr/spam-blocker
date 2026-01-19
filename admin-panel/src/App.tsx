@@ -38,6 +38,302 @@ interface UserReport {
   call_date?: string;
   call_time?: string;
   status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  upvotes?: number;
+  downvotes?: number;
+}
+
+// -----------------------------------------------------------------------------
+// BİLEŞEN: NUMARA DETAY SAYFASI
+// -----------------------------------------------------------------------------
+function NumberDetailPage({ phoneNumber }: { phoneNumber: string }) {
+  const [reports, setReports] = useState<UserReport[]>([]);
+  const [stats, setStats] = useState({ spamCount: 0, total: 0, spamPercentage: 0 });
+  const [loading, setLoading] = useState(true);
+  const [showReportModal, setShowReportModal] = useState(false);
+
+  // Modal State
+  const [reportCategory, setReportCategory] = useState('');
+  const [reportComment, setReportComment] = useState('');
+  const [reporterName, setReporterName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchNumberDetails();
+  }, [phoneNumber]);
+
+  const fetchNumberDetails = async () => {
+    setLoading(true);
+    // 1. Get all reports for this number (approved or pending, usually we show all approved)
+    // The user wants friends to see reported numbers. Let's show everything except REJECTED.
+    const { data } = await supabase
+      .from('user_reports')
+      .select('*')
+      .eq('phone_number', phoneNumber)
+      .neq('status', 'REJECTED')
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setReports(data);
+
+      const total = data.length;
+      // Count 'spam' or 'fraud' related categories as "spam"
+      const spamCount = data.filter(r =>
+        ['Dolandırıcılık / Fraud', 'Bahis / Kumar', 'Taciz / Şaka', 'Siyasi Propaganda', 'Telemarketing / Satış'].includes(r.category)
+      ).length;
+
+      const spamPercentage = total > 0 ? Math.round((spamCount / total) * 100) : 0;
+      setStats({ spamCount, total, spamPercentage });
+    }
+    setLoading(false);
+  };
+
+  const handleVote = async (id: number, type: 'up' | 'down') => {
+    // Optimistic update
+    setReports(prev => prev.map(r => {
+      if (r.id === id) {
+        return {
+          ...r,
+          upvotes: type === 'up' ? (r.upvotes || 0) + 1 : r.upvotes,
+          downvotes: type === 'down' ? (r.downvotes || 0) + 1 : r.downvotes
+        };
+      }
+      return r;
+    }));
+
+    // Call DB function
+    await supabase.rpc('increment_vote', { row_id: id, vote_type: type });
+  };
+
+  const handleSubmitReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportCategory) return;
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('user_reports')
+        .insert([{
+          phone_number: phoneNumber,
+          category: reportCategory,
+          comment: reportComment,
+          reporter_name: reporterName || 'Misafir Kullanıcı',
+          created_at: new Date().toISOString(),
+          status: 'PENDING',
+          upvotes: 0,
+          downvotes: 0
+        }]);
+
+      if (error) throw error;
+
+      setShowReportModal(false);
+      setReportCategory('');
+      setReportComment('');
+      setReporterName('');
+      fetchNumberDetails(); // Refresh list
+      alert('Yorumunuz/Raporunuz başarıyla eklendi!');
+    } catch (err) {
+      console.error(err);
+      alert('Bir hata oluştu.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) return <div className="p-20 text-center">Yükleniyor...</div>;
+
+  return (
+    <div className="min-h-screen pt-32 pb-20 font-sans text-gray-900">
+      <div className="max-w-5xl mx-auto px-4">
+
+        {/* Header Card */}
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-8 mb-8 relative overflow-hidden">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+            <div>
+              <h1 className="text-4xl font-black text-gray-900 flex items-center gap-3 mb-2 font-mono tracking-tight">
+                <Phone className="w-8 h-8 text-blue-600" />
+                {phoneNumber}
+              </h1>
+              <p className="text-gray-500 text-sm">
+                Farklı formatlar: {phoneNumber.replace(/\s/g, '')}, +90{phoneNumber.replace(/^0/, '').replace(/\s/g, '')}
+              </p>
+              <div className="flex items-center gap-4 mt-4 text-sm font-medium text-gray-600">
+                <span className="flex items-center gap-1"><MessageCircle className="w-4 h-4" /> {stats.total} Rapor/Yorum</span>
+                <span className="flex items-center gap-1"><Activity className="w-4 h-4" /> {stats.spamPercentage}% Spam Skoru</span>
+              </div>
+            </div>
+
+            {/* Spam Score Circle */}
+            <div className={`w-32 h-32 rounded-full flex flex-col items-center justify-center text-white shadow-lg
+              ${stats.spamPercentage > 60 ? 'bg-red-500 shadow-red-200' : stats.spamPercentage > 30 ? 'bg-yellow-500 shadow-yellow-200' : 'bg-green-500 shadow-green-200'}`}>
+              <span className="text-3xl font-black">{stats.spamPercentage}%</span>
+              <span className="text-xs font-bold uppercase opacity-90">Spam</span>
+            </div>
+          </div>
+
+          {/* Status Bar */}
+          <div className="mt-8 grid grid-cols-3 gap-1">
+            <div className={`py-3 text-center font-bold text-white rounded-l-lg ${stats.spamPercentage <= 30 ? 'bg-green-600' : 'bg-gray-200 text-gray-400'}`}>
+              Güvenli
+            </div>
+            <div className={`py-3 text-center font-bold text-white ${stats.spamPercentage > 30 && stats.spamPercentage <= 60 ? 'bg-yellow-500' : 'bg-gray-200 text-gray-400'}`}>
+              Belirsiz
+            </div>
+            <div className={`py-3 text-center font-bold text-white rounded-r-lg ${stats.spamPercentage > 60 ? 'bg-red-600' : 'bg-gray-200 text-gray-400'}`}>
+              Tehlikeli
+            </div>
+          </div>
+
+          <div className="mt-8 flex gap-4">
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="flex-1 bg-red-600 text-white py-4 rounded-xl font-bold hover:bg-red-700 transition shadow-lg shadow-red-100 flex items-center justify-center gap-2"
+            >
+              <AlertTriangle className="w-5 h-5" /> Bu Numarayı Spam Olarak Bildir
+            </button>
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100 flex items-center justify-center gap-2"
+            >
+              <MessageSquare className="w-5 h-5" /> Yorum Yap
+            </button>
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-8 py-6 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+            <MessageSquare className="w-5 h-5 text-gray-500" />
+            <h2 className="font-bold text-lg text-gray-900">Yorumlar ve Raporlar ({stats.total})</h2>
+          </div>
+
+          <div className="divide-y divide-gray-100">
+            {reports.map((report) => (
+              <div key={report.id} className="p-8 hover:bg-gray-50 transition">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
+                      <User className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-900">{report.reporter_name || 'Misafir Kullanıcı'}</div>
+                      <div className="text-xs text-gray-500">{new Date(report.created_at).toLocaleString('tr-TR')}</div>
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide
+                    ${['Dolandırıcılık / Fraud', 'Bahis / Kumar'].includes(report.category) ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {report.category}
+                  </span>
+                </div>
+
+                <p className="text-gray-700 leading-relaxed mb-6 text-lg">
+                  {report.comment || <span className="text-gray-400 italic">Yorum yapılmamış.</span>}
+                </p>
+
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => handleVote(report.id, 'up')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-green-50 hover:text-green-600 hover:border-green-200 transition"
+                  >
+                    <ThumbsUp className="w-4 h-4" />
+                    <span className="font-medium">{report.upvotes || 0}</span>
+                  </button>
+                  <button
+                    onClick={() => handleVote(report.id, 'down')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition"
+                  >
+                    <ThumbsDown className="w-4 h-4" />
+                    <span className="font-medium">{report.downvotes || 0}</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {reports.length === 0 && (
+              <div className="p-12 text-center text-gray-400">
+                <p>Henüz bu numara için yorum yapılmamış. İlk yorumu siz yapın!</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Report Modal */}
+      <AnimatePresence>
+        {showReportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowReportModal(false)}
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+            >
+              <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 className="font-bold text-xl text-gray-900">Yorum Yap / Raporla</h3>
+                <button onClick={() => setShowReportModal(false)} className="p-2 hover:bg-gray-200 rounded-full transition">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitReport} className="p-8 space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">İsim (İsteğe bağlı)</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    placeholder="Adınız veya Rumuz"
+                    value={reporterName}
+                    onChange={(e) => setReporterName(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Kategori *</label>
+                  <select
+                    required
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    value={reportCategory}
+                    onChange={(e) => setReportCategory(e.target.value)}
+                  >
+                    <option value="">Seçiniz...</option>
+                    <option value="Telemarketing / Satış">Telemarketing / Satış</option>
+                    <option value="Dolandırıcılık / Fraud">Dolandırıcılık / Fraud</option>
+                    <option value="Anket / Araştırma">Anket / Araştırma</option>
+                    <option value="Siyasi Propaganda">Siyasi Propaganda</option>
+                    <option value="Bahis / Kumar">Bahis / Kumar</option>
+                    <option value="Borç Tahsilatı">Borç Tahsilatı</option>
+                    <option value="Taciz / Şaka">Taciz / Şaka</option>
+                    <option value="Diğer">Diğer</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Yorumunuz</label>
+                  <textarea
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition h-32 resize-none"
+                    placeholder="Deneyiminizi paylaşın..."
+                    value={reportComment}
+                    onChange={(e) => setReportComment(e.target.value)}
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100"
+                >
+                  {isSubmitting ? 'Gönderiliyor...' : 'Gönder'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
 
 // -----------------------------------------------------------------------------
@@ -535,11 +831,14 @@ function LandingPage() {
                   {report.category}
                 </span>
               </div>
-              <span className="phone-number">{report.phone_number}</span>
+              <a href={`/number/${encodeURIComponent(report.phone_number)}`} className="phone-number hover:underline">{report.phone_number}</a>
               <p className="comment">"{report.comment || 'Açıklama yok.'}"</p>
               <div className="card-footer">
                 <button className="action-btn">👍 Faydalı</button>
                 <button className="action-btn">👎 Katılmıyorum</button>
+                <a href={`/number/${encodeURIComponent(report.phone_number)}`} className="action-btn text-blue-600 hover:bg-blue-50" style={{ marginLeft: 'auto' }}>
+                  💬 Yorum Yap
+                </a>
               </div>
             </div>
           ))}
@@ -1111,6 +1410,46 @@ function App() {
         </nav>
 
         <AboutPage />
+
+        <footer>
+          <div className="footer-logo">
+            Spam Blocker
+          </div>
+          <div className="copy">
+            © 2026 Spam Blocker. Tüm hakları saklıdır.
+          </div>
+        </footer>
+      </>
+    );
+  }
+
+  // Numara Detay Sayfası
+  if (currentPath.startsWith('/number/')) {
+    const phoneNumber = decodeURIComponent(currentPath.split('/number/')[1]);
+    return (
+      <>
+        <div className="resin-blob"></div>
+        <div className="glass-orb"></div>
+
+        <nav>
+          <a href="#" className="logo">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="8" fill="#be123c" />
+              <path d="M12 7V17M12 7L15 10M12 7L9 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Spam Blocker
+          </a>
+          <ul className="nav-links">
+            <li><a href="/">Ana Sayfa</a></li>
+            <li><a href="/#search">Sorgula</a></li>
+            <li><a href="/#report">Spam Bildir</a></li>
+            <li><a href="/about">Hakkımızda</a></li>
+            <li><a href="/admin">Admin</a></li>
+          </ul>
+          <a href="#" className="btn-download">Uygulamayı İndir</a>
+        </nav>
+
+        <NumberDetailPage phoneNumber={phoneNumber} />
 
         <footer>
           <div className="footer-logo">
