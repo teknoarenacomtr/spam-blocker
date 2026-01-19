@@ -42,6 +42,53 @@ interface UserReport {
   votes_down?: number;
 }
 
+interface SpamPattern {
+  id: number;
+  pattern: string;
+  type: 'KEYWORD' | 'REGEX';
+  category: 'JUNK' | 'PROMOTION' | 'TRANSACTION' | 'NOTIFICATION' | 'GENERAL';
+  is_active: boolean;
+}
+
+interface FilterResult {
+  isBlocked: boolean;
+  category: string;
+  matchedRule?: string;
+  confidence: number;
+}
+
+// -----------------------------------------------------------------------------
+// JUNKBOY LOGIC ENTEGRASYONU (Client-Side Simulation)
+// -----------------------------------------------------------------------------
+const filterMessage = (message: string, patterns: SpamPattern[]): FilterResult => {
+  const text = message.toLowerCase();
+
+  // 1. Regex Kontrolü
+  const regexPatterns = patterns.filter(p => p.type === 'REGEX' && p.is_active);
+  for (const p of regexPatterns) {
+    try {
+      // Veritabanındaki string regex'i JS Regex nesnesine çevir
+      const regex = new RegExp(p.pattern, 'i');
+      if (regex.test(text)) {
+        return { isBlocked: true, category: p.category, matchedRule: p.pattern, confidence: 0.95 };
+      }
+    } catch (e) {
+      console.warn('Invalid regex:', p.pattern);
+    }
+  }
+
+  // 2. Keyword Kontrolü
+  const keywordPatterns = patterns.filter(p => p.type === 'KEYWORD' && p.is_active);
+  for (const p of keywordPatterns) {
+    if (text.includes(p.pattern.toLowerCase())) {
+      return { isBlocked: true, category: p.category, matchedRule: p.pattern, confidence: 0.9 };
+    }
+  }
+
+  // 3. Varsayılan (Temiz)
+  return { isBlocked: false, category: 'GENERAL', confidence: 0.5 };
+};
+
 // -----------------------------------------------------------------------------
 // BİLEŞEN: HAKKIMIZDA SAYFASI
 // -----------------------------------------------------------------------------
@@ -350,7 +397,7 @@ function LandingPage() {
       <div className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
         {/* Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -404,26 +451,25 @@ function LandingPage() {
                 exit={{ opacity: 0, y: -10, height: 0 }}
                 className="max-w-md mx-auto mb-12"
               >
-                <div className={`p-6 rounded-2xl border backdrop-blur-sm ${
-                  searchResult === 'SPAM' 
-                    ? 'bg-red-50/50 border-red-200 text-red-900' 
-                    : searchResult === 'SUSPICIOUS' 
-                      ? 'bg-orange-50/50 border-orange-200 text-orange-900' 
-                      : 'bg-green-50/50 border-green-200 text-green-900'
-                }`}>
+                <div className={`p-6 rounded-2xl border backdrop-blur-sm ${searchResult === 'SPAM'
+                  ? 'bg-red-50/50 border-red-200 text-red-900'
+                  : searchResult === 'SUSPICIOUS'
+                    ? 'bg-orange-50/50 border-orange-200 text-orange-900'
+                    : 'bg-green-50/50 border-green-200 text-green-900'
+                  }`}>
                   <div className="flex items-center justify-center gap-3 mb-2">
                     {searchResult === 'SPAM' && <AlertOctagon className="w-8 h-8" />}
                     {searchResult === 'SUSPICIOUS' && <AlertTriangle className="w-8 h-8" />}
                     {searchResult === 'CLEAN' && <CheckCircle className="w-8 h-8" />}
                     <h3 className="text-xl font-bold">
-                      {searchResult === 'SPAM' ? 'Tehlikeli Numara!' : 
-                       searchResult === 'SUSPICIOUS' ? 'Şüpheli Aktivite' : 'Temiz Görünüyor'}
+                      {searchResult === 'SPAM' ? 'Tehlikeli Numara!' :
+                        searchResult === 'SUSPICIOUS' ? 'Şüpheli Aktivite' : 'Temiz Görünüyor'}
                     </h3>
                   </div>
                   <p className="text-sm opacity-90">
-                    {searchResult === 'SPAM' ? 'Bu numara veritabanımızda kayıtlı.' : 
-                     searchResult === 'SUSPICIOUS' ? `Hakkında ${reportCount} adet rapor var.` : 
-                     'Henüz bir kayıt bulunamadı.'}
+                    {searchResult === 'SPAM' ? 'Bu numara veritabanımızda kayıtlı.' :
+                      searchResult === 'SUSPICIOUS' ? `Hakkında ${reportCount} adet rapor var.` :
+                        'Henüz bir kayıt bulunamadı.'}
                   </p>
                 </div>
               </motion.div>
@@ -487,11 +533,10 @@ function LandingPage() {
                         key={cat.id}
                         type="button"
                         onClick={() => setReportCategory(cat.id)}
-                        className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 ${
-                          reportCategory === cat.id
-                            ? 'bg-gray-900 border-gray-900 text-white shadow-lg'
-                            : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
+                        className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 ${reportCategory === cat.id
+                          ? 'bg-gray-900 border-gray-900 text-white shadow-lg'
+                          : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
                       >
                         <cat.icon className="w-5 h-5" />
                         <span className="text-[10px] font-bold">{cat.label}</span>
@@ -600,18 +645,18 @@ function LandingPage() {
                 )}
 
                 <div className="flex gap-3 pt-2">
-                  <button 
+                  <button
                     onClick={() => handleVote(report.id, 'up')}
                     className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-700 transition text-xs font-bold group/btn"
                   >
-                    <ThumbsUp className="w-4 h-4 group-hover/btn:scale-110 transition-transform" /> 
+                    <ThumbsUp className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                     Faydalı ({report.votes_up || 0})
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleVote(report.id, 'down')}
                     className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-red-50 hover:text-red-700 transition text-xs font-bold group/btn"
                   >
-                    <ThumbsDown className="w-4 h-4 group-hover/btn:scale-110 transition-transform" /> 
+                    <ThumbsDown className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                     Katılmıyorum ({report.votes_down || 0})
                   </button>
                 </div>
@@ -727,10 +772,186 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
 }
 
 // -----------------------------------------------------------------------------
+// BİLEŞEN: DASHBOARD (Junkboy Inspired Stats)
+// -----------------------------------------------------------------------------
+function DashboardPanel({ patterns }: { patterns: SpamPattern[] }) {
+  const [stats, setStats] = useState({
+    totalRules: 0,
+    activeRegex: 0,
+    activeKeywords: 0,
+    underAttack: false
+  });
+
+  useEffect(() => {
+    // İstatistikleri hesapla
+    setStats({
+      totalRules: patterns.length,
+      activeRegex: patterns.filter(p => p.type === 'REGEX' && p.is_active).length,
+      activeKeywords: patterns.filter(p => p.type === 'KEYWORD' && p.is_active).length,
+      underAttack: false // TODO: DB'den çekilecek
+    });
+  }, [patterns]);
+
+  return (
+    <div className="grid gap-6 mb-8">
+      {/* Üst Kartlar */}
+      <div className="grid md:grid-cols-4 gap-4">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-red-50 rounded-xl">
+              <Shield className="w-6 h-6 text-red-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Toplam Kural</p>
+              <h3 className="text-2xl font-bold text-gray-900">{stats.totalRules}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-50 rounded-xl">
+              <Code className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Regex Kalıpları</p>
+              <h3 className="text-2xl font-bold text-gray-900">{stats.activeRegex}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-orange-50 rounded-xl">
+              <MessageSquare className="w-6 h-6 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Yasaklı Kelimeler</p>
+              <h3 className="text-2xl font-bold text-gray-900">{stats.activeKeywords}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-xl ${stats.underAttack ? 'bg-red-600' : 'bg-green-50'}`}>
+              <Activity className={`w-6 h-6 ${stats.underAttack ? 'text-white' : 'text-green-600'}`} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Sistem Durumu</p>
+              <h3 className={`text-xl font-bold ${stats.underAttack ? 'text-red-600' : 'text-green-600'}`}>
+                {stats.underAttack ? 'SALDIRI ALTINDA' : 'Güvenli'}
+              </h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grafik Alanı (Mockup) */}
+      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+        <h3 className="text-lg font-bold text-gray-900 mb-6">Kategori Dağılımı (Junkboy Analitiği)</h3>
+        <div className="h-64 flex items-end justify-between gap-4 px-4">
+          {[
+            { label: 'Genel', h: '40%', color: 'bg-gray-200' },
+            { label: 'Promosyon', h: '65%', color: 'bg-blue-400' },
+            { label: 'İşlem', h: '30%', color: 'bg-green-400' },
+            { label: 'Bildirim', h: '45%', color: 'bg-yellow-400' },
+            { label: 'SPAM', h: '85%', color: 'bg-red-500' },
+          ].map((bar, i) => (
+            <div key={i} className="flex flex-col items-center gap-2 w-full">
+              <div className={`w-full rounded-t-xl transition-all duration-500 hover:opacity-80 ${bar.color}`} style={{ height: bar.h }}></div>
+              <span className="text-xs font-bold text-gray-500">{bar.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// BİLEŞEN: TEST FILTER (Canlı Simülasyon)
+// -----------------------------------------------------------------------------
+function TestFilterPanel({ patterns }: { patterns: SpamPattern[] }) {
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<FilterResult | null>(null);
+
+  const handleTest = () => {
+    if (!text) return;
+    const res = filterMessage(text, patterns);
+    setResult(res);
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+        <Zap className="w-6 h-6 text-yellow-500" /> Filtre Simülasyonu
+      </h2>
+
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-semibold text-gray-700 mb-2 block">Test Edilecek Mesaj</label>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 transition h-32 resize-none"
+            placeholder="Örn: Tebrikler! 1000 TL bonus kazandınız. Hemen tıkla: http://..."
+          />
+        </div>
+
+        <button
+          onClick={handleTest}
+          className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-black transition shadow-lg"
+        >
+          Analiz Et
+        </button>
+
+        {result && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`mt-6 p-6 rounded-xl border ${result.isBlocked
+              ? 'bg-red-50 border-red-200'
+              : 'bg-green-50 border-green-200'
+              }`}
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className={`p-3 rounded-full ${result.isBlocked ? 'bg-red-100' : 'bg-green-100'}`}>
+                {result.isBlocked ? <AlertOctagon className="w-6 h-6 text-red-600" /> : <CheckCircle className="w-6 h-6 text-green-600" />}
+              </div>
+              <div>
+                <h3 className={`text-lg font-bold ${result.isBlocked ? 'text-red-900' : 'text-green-900'}`}>
+                  {result.isBlocked ? 'SPAM TESPİT EDİLDİ' : 'TEMİZ MESAJ'}
+                </h3>
+                <p className="text-sm opacity-80">Güven Skoru: %{(result.confidence * 100).toFixed(0)}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between border-b border-black/5 pb-2">
+                <span className="opacity-60">Kategori:</span>
+                <span className="font-bold">{result.category}</span>
+              </div>
+              {result.matchedRule && (
+                <div className="flex justify-between border-b border-black/5 pb-2">
+                  <span className="opacity-60">Eşleşen Kural:</span>
+                  <span className="font-mono bg-white/50 px-2 rounded">{result.matchedRule}</span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // BİLEŞEN: ADMIN PANEL (Mevcut Panel)
 // -----------------------------------------------------------------------------
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [rules, setRules] = useState<Rules>({ phones: [], keywords: [] });
+  const [patterns, setPatterns] = useState<SpamPattern[]>([]);
   const [newValue, setNewValue] = useState('');
   const [type, setType] = useState<'PHONE' | 'KEYWORD'>('PHONE');
   const [loading, setLoading] = useState(false);
@@ -738,22 +959,33 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
   // Gelen Raporlar
   const [incomingReports, setIncomingReports] = useState<UserReport[]>([]);
-  const [activeTab, setActiveTab] = useState<'RULES' | 'INBOX'>('RULES');
+  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'RULES' | 'INBOX' | 'TEST'>('DASHBOARD');
 
   const fetchRules = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // 1. Eski kuralları çek
+      const { data: oldRules } = await supabase
         .from('spam_rules')
         .select('type, value, description')
         .eq('is_active', true);
 
-      if (error) throw error;
+      if (oldRules) {
+        const phones = oldRules.filter((item: any) => item.type === 'PHONE').map((item: any) => ({ value: item.value, description: item.description }));
+        const keywords = oldRules.filter((item: any) => item.type === 'KEYWORD').map((item: any) => ({ value: item.value, description: item.description }));
+        setRules({ phones, keywords });
+      }
 
-      const phones = data.filter((item: any) => item.type === 'PHONE').map((item: any) => ({ value: item.value, description: item.description }));
-      const keywords = data.filter((item: any) => item.type === 'KEYWORD').map((item: any) => ({ value: item.value, description: item.description }));
+      // 2. Yeni Junkboy kurallarını çek
+      const { data: newPatterns } = await supabase
+        .from('spam_patterns')
+        .select('*')
+        .eq('is_active', true);
 
-      setRules({ phones, keywords });
+      if (newPatterns) {
+        setPatterns(newPatterns as SpamPattern[]);
+      }
+
       setMessage('Veriler güncellendi.');
     } catch (err) {
       console.error(err);
@@ -898,19 +1130,31 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">Yönetim Paneli</h1>
-              <div className="flex gap-4 mt-2">
+              <div className="flex gap-4 mt-2 overflow-x-auto pb-1">
+                <button
+                  onClick={() => setActiveTab('DASHBOARD')}
+                  className={`text-sm font-medium whitespace-nowrap pb-1 border-b-2 transition ${activeTab === 'DASHBOARD' ? 'text-red-600 border-red-600' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
+                >
+                  Dashboard
+                </button>
                 <button
                   onClick={() => setActiveTab('RULES')}
-                  className={`text-sm font-medium pb-1 border-b-2 transition ${activeTab === 'RULES' ? 'text-red-600 border-red-600' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
+                  className={`text-sm font-medium whitespace-nowrap pb-1 border-b-2 transition ${activeTab === 'RULES' ? 'text-red-600 border-red-600' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
                 >
                   Kurallar
                 </button>
                 <button
                   onClick={() => setActiveTab('INBOX')}
-                  className={`text-sm font-medium pb-1 border-b-2 transition flex items-center gap-2 ${activeTab === 'INBOX' ? 'text-red-600 border-red-600' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
+                  className={`text-sm font-medium whitespace-nowrap pb-1 border-b-2 transition flex items-center gap-2 ${activeTab === 'INBOX' ? 'text-red-600 border-red-600' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
                 >
                   Gelen Kutusu
                   <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full text-xs font-bold">{incomingReports.length}</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('TEST')}
+                  className={`text-sm font-medium whitespace-nowrap pb-1 border-b-2 transition flex items-center gap-2 ${activeTab === 'TEST' ? 'text-red-600 border-red-600' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
+                >
+                  <Zap className="w-3 h-3" /> Test Et
                 </button>
               </div>
             </div>
@@ -940,7 +1184,15 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           </div>
         </header>
 
-        {activeTab === 'RULES' ? (
+        {activeTab === 'DASHBOARD' && (
+          <DashboardPanel patterns={patterns} />
+        )}
+
+        {activeTab === 'TEST' && (
+          <TestFilterPanel patterns={patterns} />
+        )}
+
+        {activeTab === 'RULES' && (
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Sol Kolon: Form */}
             <div className="lg:col-span-1">
@@ -1005,6 +1257,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                         onClick={() => handleDelete(phone.value, 'PHONE')}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition opacity-0 group-hover:opacity-100"
                         title="Sil"
+                        type="button"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1040,6 +1293,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                         onClick={() => handleDelete(kw.value, 'KEYWORD')}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition opacity-0 group-hover:opacity-100"
                         title="Sil"
+                        type="button"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1055,7 +1309,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'INBOX' && (
           /* --- INBOX (Gelen Şikayetler) --- */
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
