@@ -7,7 +7,7 @@ import {
   CreditCard, UserX, HelpCircle, Activity, Search,
   MessageCircle, User, ThumbsUp, ThumbsDown,
   Info, Calendar, Clock, Building2, Zap, Users,
-  ArrowRight, Globe, Share2, BarChart2
+  ArrowRight, Globe, Share2, BarChart2, Code
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
